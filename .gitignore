@@ -1,0 +1,561 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+venv.bak/
+env.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Models and weights
+models/
+*.bin
+*.safetensors
+*.pt
+*.pth
+checkpoint-*/
+
+# Evaluation results
+evaluation_results/
+*.json
+!dataset/*.json
+!training/config.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Streamlit
+.streamlit/
+.streamlit_cache/
+
+# Cache
+.cache/
+*.cache
+__pycache__
+.pytest_cache
+.coverage
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# OS specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# IDE specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Metrics
+metrics.json
+performance_data.json
+```
+
+<file_path>
+lab_9_repo/.env.example
+</file_path>
+
+<edit_description>
+Create environment configuration template
+</edit_description>
+
+```
+# ===== Model Configuration =====
+MODEL_NAME=microsoft/phi-2
+MODEL_PATH=./models
+ENVIRONMENT=production
+
+# ===== API Configuration =====
+API_HOST=0.0.0.0
+API_PORT=8000
+API_TIMEOUT=30
+
+# ===== Logging Configuration =====
+LOG_LEVEL=INFO
+LOG_DIR=./logs
+DEBUG_MODE=False
+
+# ===== Model Generation Configuration =====
+MAX_RESPONSE_LENGTH=500
+MIN_RESPONSE_LENGTH=50
+TEMPERATURE=0.7
+TOP_P=0.95
+BATCH_SIZE=1
+
+# ===== Evaluation Configuration =====
+EVAL_BATCH_SIZE=1
+
+# ===== Performance Configuration =====
+ENABLE_CACHING=True
+CACHE_SIZE=100
+
+# ===== Monitoring Configuration =====
+TRACK_METRICS=True
+
+# ===== Streamlit Configuration =====
+STREAMLIT_PORT=8501
+STREAMLIT_SERVER_ADDRESS=0.0.0.0
+STREAMLIT_SERVER_HEADLESS=true
+```
+
+<file_path>
+lab_9_repo/Makefile
+</file_path>
+
+<edit_description>
+Create Makefile for development convenience commands
+</edit_description>
+
+```
+.PHONY: help install clean run api frontend test logs evaluate docker-build docker-run docker-stop format lint train env
+
+help:
+	@echo "Domain Adapted AI Assistant - Development Commands"
+	@echo "===================================================="
+	@echo "Setup Commands:"
+	@echo "  make install       - Install dependencies"
+	@echo "  make env           - Create .env file from template"
+	@echo "  make clean         - Clean up cache and logs"
+	@echo ""
+	@echo "Development Commands:"
+	@echo "  make api           - Start API server (port 8000)"
+	@echo "  make frontend      - Start Streamlit frontend (port 8501)"
+	@echo "  make run           - Run both API and frontend"
+	@echo "  make train         - Train/fine-tune the model"
+	@echo ""
+	@echo "Testing & Evaluation:"
+	@echo "  make test          - Run evaluation suite"
+	@echo "  make logs          - View application logs"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make format        - Format code with black"
+	@echo "  make lint          - Run linting checks"
+	@echo ""
+	@echo "Docker Commands:"
+	@echo "  make docker-build  - Build Docker image"
+	@echo "  make docker-run    - Run with docker-compose"
+	@echo "  make docker-stop   - Stop Docker containers"
+
+install:
+	python -m venv venv
+	. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
+	@echo "✅ Installation complete! Run 'source venv/bin/activate' to activate the virtual environment"
+
+env:
+	cp .env.example .env
+	@echo "✅ Created .env file from template. Please update with your settings."
+
+clean:
+	rm -rf __pycache__ .pytest_cache .coverage
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+	rm -f logs/*.log
+	@echo "✅ Cleaned up cache and logs"
+
+api:
+	python -m uvicorn app.api:app --reload --host 0.0.0.0 --port 8000 --log-level info
+
+frontend:
+	streamlit run app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+
+run:
+	@echo "Starting API and Frontend..."
+	@echo "API will run on: http://localhost:8000"
+	@echo "Frontend will run on: http://localhost:8501"
+	@echo "Press Ctrl+C to stop"
+	python -m uvicorn app.api:app --reload --host 0.0.0.0 --port 8000 & \
+	streamlit run app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+
+train:
+	python training/train_lora.py
+
+test:
+	python evaluation/evaluate.py
+
+logs:
+	tail -f logs/app.log
+
+docker-build:
+	docker build -t domain-ai-assistant:latest .
+	@echo "✅ Docker image built successfully"
+
+docker-run:
+	docker-compose up -d
+	@echo "✅ Docker containers started"
+	@echo "API running on http://localhost:8000"
+	@echo "Frontend running on http://localhost:8501"
+
+docker-stop:
+	docker-compose down
+	@echo "✅ Docker containers stopped"
+
+format:
+	black app/ training/ evaluation/ monitoring/
+	@echo "✅ Code formatted with black"
+
+lint:
+	python -m flake8 app/ training/ evaluation/ monitoring/ --max-line-length=100 --ignore=E203,W503
+	@echo "✅ Linting complete"
+
+.DEFAULT_GOAL := help
+```
+
+<file_path>
+lab_9_repo/Dockerfile.streamlit
+</file_path>
+
+<edit_description>
+Create Dockerfile specifically for Streamlit application
+</edit_description>
+
+```
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    STREAMLIT_SERVER_PORT=8501 \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+    STREAMLIT_SERVER_HEADLESS=true
+
+EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+```
+
+<file_path>
+lab_9_repo/CONTRIBUTORS.md
+</file_path>
+
+<edit_description>
+Update contributors file with Lab 9 enhancements
+</edit_description>
+
+```
+# Team Contributions - Lab 9 Enhancement
+
+## Project Overview
+Domain Adapted AI Assistant - Lab 9 focuses on improving application usability, monitoring, logging, and deployment readiness.
+
+## Ibrahim Alborno (50%)
+
+### Lab 9 Contributions:
+- Fine-tuning implementation and model optimization
+- Backend API development with FastAPI
+- Performance monitoring and metrics collection
+- Error handling and recovery mechanisms
+- Evaluation framework development
+- Testing and debugging of model responses
+- Integration testing of API endpoints
+
+### Key Deliverables:
+- Enhanced FastAPI backend with comprehensive error handling
+- Performance tracking and metrics collection system
+- Model evaluation script with quality metrics
+- Docker containerization for model service
+- API endpoints for health checks and metrics
+
+### Files Modified:
+- `app/api.py` - Enhanced with logging, monitoring, error handling
+- `training/train_lora.py` - Model training script
+- `evaluation/evaluate.py` - Comprehensive evaluation suite
+- `monitoring/metrics.py` - Metrics collection system
+
+---
+
+## Immanuel Olaoye (50%)
+
+### Lab 9 Contributions:
+- Streamlit UI redesign with enhanced user experience
+- Logging and debugging infrastructure
+- System architecture and project organization
+- Documentation and deployment configuration
+- Monitoring dashboard development
+- Configuration management system
+- Docker and deployment setup
+
+### Key Deliverables:
+- Enhanced Streamlit application with better UX/UI
+- Comprehensive logging system across all components
+- Configuration management with environment variables
+- Docker and docker-compose setup
+- Makefile for development convenience
+- Enhanced README documentation
+- Monitoring and metrics dashboard in Streamlit
+
+### Files Created/Modified:
+- `app/streamlit_app.py` - Redesigned with tabs, metrics, history
+- `app/config.py` - Configuration management system
+- `app/utils.py` - Utility functions and helpers
+- `README.md` - Comprehensive project documentation
+- `Dockerfile` - Multi-stage Docker build
+- `docker-compose.yml` - Multi-container orchestration
+- `.env.example` - Environment configuration template
+- `Makefile` - Development commands
+- `CONTRIBUTORS.md` - This file
+
+---
+
+## Lab 9 Enhancement Summary
+
+### 1. Application Workflow Improvements
+- **Streamlit UI**: Completely redesigned with tabs, chat history, metrics dashboard
+- **Response History**: Track all queries and responses with timestamps
+- **Real-time Metrics**: Display performance metrics in sidebar
+- **Example Questions**: Pre-populated questions for easy testing
+- **Better Error Handling**: User-friendly error messages and recovery
+
+### 2. System Evaluation & Monitoring
+- **Metrics Dashboard**: Real-time performance metrics
+- **Cache Statistics**: Monitor cache hit rates and performance
+- **Health Checks**: API health endpoint with detailed status
+- **Performance Tracking**: Inference time, token count, cache status
+- **Evaluation Suite**: Comprehensive model evaluation script
+- **Quality Metrics**: Response quality scoring system
+
+### 3. Logging & Debugging Support
+- **Structured Logging**: Consistent logging across all modules
+- **Performance Timing**: Automatic timing of operations
+- **Request Tracking**: Full request/response logging
+- **Error Tracking**: Detailed error logs with stack traces
+- **Debug Mode**: Configurable debug logging level
+- **Log Files**: Persistent logs in `logs/` directory
+
+### 4. Deployment & System Stability
+- **Docker Support**: Multi-stage Dockerfile for efficient builds
+- **Docker Compose**: Easy multi-container orchestration
+- **Environment Configuration**: .env file for all settings
+- **Health Checks**: Container health monitoring
+- **Error Recovery**: Graceful error handling throughout
+- **Production Ready**: Configuration for production deployment
+
+---
+
+## Technology Stack
+
+### Core Technologies
+- **Python 3.10+**
+- **FastAPI** - Backend API framework
+- **Streamlit** - Frontend UI framework
+- **Transformers** - Model loading and inference
+- **PEFT** - Parameter-efficient fine-tuning
+- **PyTorch** - Deep learning framework
+
+### Tools & Frameworks
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **Python-dotenv** - Environment configuration
+- **Requests** - HTTP client
+- **Pydantic** - Data validation
+- **Pandas** - Data processing
+
+### Development Tools
+- **Black** - Code formatter
+- **Flake8** - Linting
+- **Pytest** - Testing framework
+- **Uvicorn** - ASGI server
+
+---
+
+## Key Features Implemented
+
+✅ **Enhanced Application**
+- Multi-tab Streamlit interface
+- Chat history with timestamps
+- Real-time metrics display
+- Example questions for quick testing
+- Responsive error handling
+
+✅ **System Monitoring**
+- Comprehensive metrics dashboard
+- Cache performance statistics
+- API health status
+- Inference time tracking
+- Request/response metrics
+
+✅ **Logging Infrastructure**
+- Structured logging with levels
+- Performance timing measurements
+- Request/response tracking
+- Error logging with context
+- Debug mode support
+
+✅ **Deployment Ready**
+- Docker containerization
+- Docker Compose orchestration
+- Environment configuration
+- Health checks and monitoring
+- Production-grade error handling
+
+---
+
+## Files Structure
+
+```
+lab_9_repo/
+├── app/
+│   ├── api.py                 # Enhanced FastAPI backend
+│   ├── streamlit_app.py       # Redesigned Streamlit UI
+│   ├── config.py              # Configuration management
+│   └── utils.py               # Utility functions
+├── training/
+│   └── train_lora.py          # Model training script
+├── evaluation/
+│   └── evaluate.py            # Evaluation suite
+├── monitoring/
+│   ├── __init__.py            # Package initialization
+│   └── metrics.py             # Metrics collection
+├── dataset/
+│   └── instructions.json      # Training data
+├── logs/                      # Application logs
+├── models/                    # Model weights
+├── Dockerfile                 # API Docker image
+├── Dockerfile.streamlit       # Streamlit Docker image
+├── docker-compose.yml         # Multi-container setup
+├── Makefile                   # Development commands
+├── .env.example              # Environment template
+├── .gitignore                # Git ignore rules
+├── requirements.txt          # Python dependencies
+└── README.md                 # Project documentation
+```
+
+---
+
+## Running the Application
+
+### Local Development
+```bash
+make install      # Install dependencies
+make env          # Create .env file
+make run          # Start API and frontend
+```
+
+### Docker Deployment
+```bash
+make docker-build  # Build Docker image
+make docker-run    # Start with docker-compose
+```
+
+### Testing & Evaluation
+```bash
+make test          # Run evaluation suite
+make logs          # View application logs
+```
+
+---
+
+## Metrics & Monitoring
+
+The application provides comprehensive metrics including:
+- Total requests processed
+- Success/failure rates
+- Average inference time
+- Response token counts
+- Cache hit rates
+- System uptime
+- Error rates and details
+
+---
+
+## Conclusion
+
+Lab 9 has successfully enhanced the Domain Adapted AI Assistant with production-ready features including:
+- Professional UI/UX with Streamlit
+- Comprehensive monitoring and metrics
+- Robust logging throughout the system
+- Complete Docker deployment setup
+- Well-documented codebase
+
+The application is now ready for further development and deployment in the Research-A-Thon competition.
