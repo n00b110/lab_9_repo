@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: domain-ai-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=microsoft/phi-2
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+      - DEBUG_MODE=False
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_TIMEOUT=30
+      - MAX_RESPONSE_LENGTH=500
+      - ENABLE_CACHING=True
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./dataset:/app/dataset
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000 --reload
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: domain-ai-ui
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_LOGGER_LEVEL=info
+    volumes:
+      - ./logs:/app/logs
+      - ./app:/app/app
+    networks:
+      - ai-network
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    command: streamlit run app/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+
+networks:
+  ai-network:
+    driver: bridge
+
+volumes:
+  models:
+  logs:
